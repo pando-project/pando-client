@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	adminserver "pandoClient/pkg/server/admin/http"
+	"time"
 )
 
 var providerSyncReq = adminserver.SyncReq{}
@@ -24,10 +25,12 @@ func ProviderSyncCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			res, err := Client.R().
+			// it may take long time to finish the syncing
+			res, err := Client.SetTimeout(time.Hour).R().
 				SetBody(bodyBytes).
 				SetHeader("Content-Type", "application/octet-stream").
 				Post("/admin/syncprovider")
+			defer Client.SetTimeout(time.Second * 10)
 			if err != nil {
 				return err
 			}

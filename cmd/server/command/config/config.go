@@ -148,6 +148,8 @@ func (c *Config) String() string {
 }
 
 func (c *Config) PopulateDefaults() {
+	c.AdminServer.PopulateDefaults()
+	c.P2pServer.PopulateDefaults()
 	c.Datastore.PopulateDefaults()
 }
 

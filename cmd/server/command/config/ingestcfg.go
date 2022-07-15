@@ -8,8 +8,10 @@ const (
 )
 
 type IngestCfg struct {
+	// todo: not use temporary
 	PersistAfterSend bool
-	PublisherKind    PublisherKind
+	// in fact, only datatransfer is used
+	PublisherKind PublisherKind
 }
 
 func NewIngestCfg() IngestCfg {

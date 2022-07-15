@@ -34,10 +34,10 @@ type httpRes struct {
 	Data    struct {
 		PeerID       string `json:"peerID"`
 		APIAddresses struct {
-			GRAPHQL_API   string `json:"GRAPHQL_API"`
-			GRAPHSYNC_API string `json:"GRAPHSYNC_API"`
-			HTTP_API      string `json:"HTTP_API"`
-		} `json:"APIAddresses"`
+			GRAPHQL_API   string `json:"GraphQLAPI"`
+			GRAPHSYNC_API string `json:"GraphSyncAPI"`
+			HTTP_API      string `json:"HttpAPI"`
+		} `json:"Addresses"`
 	} `json:"Data"`
 }
 

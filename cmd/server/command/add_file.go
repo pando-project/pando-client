@@ -33,7 +33,7 @@ func AddFileCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&req.Path, "ath", "p", "", "file to add, required")
+	cmd.Flags().StringVarP(&req.Path, "path", "p", "", "file to add, required")
 
 	return cmd
 }

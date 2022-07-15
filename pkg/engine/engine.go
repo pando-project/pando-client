@@ -100,7 +100,7 @@ func (e *Engine) Start(ctx context.Context) error {
 func (e *Engine) newPublisher() (legs.Publisher, error) {
 	switch e.pubKind {
 	case NoPublisher:
-		logger.Info("Remote announcements is disabled; all advertisements will only be store locally.")
+		logger.Info("Remote announcements is disabled; all metadatas will only be store locally.")
 		return nil, nil
 	case DataTransferPublisher:
 		dtOpts := []dtsync.Option{
@@ -279,7 +279,7 @@ func (e *Engine) Sync(ctx context.Context, c string, depth int, endCidStr string
 	return syncRes, nil
 }
 
-type responseJson struct {
+type latestSyncResJson struct {
 	Code    int                  `json:"code"`
 	Message string               `json:"message"`
 	Data    struct{ Cid string } `json:"Data"`
@@ -290,7 +290,7 @@ func (e *Engine) SyncWithProvider(ctx context.Context, provider string, depth in
 	if err != nil {
 		return err
 	}
-	resJson := responseJson{}
+	resJson := latestSyncResJson{}
 	err = json.Unmarshal(res.Body(), &resJson)
 	if err != nil {
 		logger.Errorf("failed to unmarshal the latestes cid from PandoAPI result: %v", err)

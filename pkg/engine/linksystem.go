@@ -2,7 +2,6 @@ package engine
 
 import (
 	"bytes"
-	"errors"
 	"io"
 
 	//provider "github.com/filecoin-project/index-provider"
@@ -13,8 +12,6 @@ import (
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 )
-
-var errNoEntries = errors.New("no entries; see schema.NoEntries")
 
 // Creates the main engine linksystem.
 func (e *Engine) mkLinkSystem() ipld.LinkSystem {

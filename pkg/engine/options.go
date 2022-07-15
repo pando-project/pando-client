@@ -18,22 +18,22 @@ import (
 )
 
 const (
-	// NoPublisher indicates that no announcements are made to the network and all advertisements
+	// NoPublisher indicates that no announcements are made to the network and all metadatas
 	// are only stored locally.
 	NoPublisher PublisherKind = ""
 
 	// DataTransferPublisher makes announcements over a gossipsub topic and exposes a
-	// datatransfer/graphsync server that allows peers in the network to sync advertisements.
+	// datatransfer/graphsync server that allows peers in the network to sync metadatas.
 	DataTransferPublisher PublisherKind = "dtsync"
 
-	// HttpPublisher exposes a HTTP server that announces published advertisements and allows peers
+	// HttpPublisher exposes a HTTP server that announces published metadatas and allows peers
 	// in the network to sync them over raw HTTP transport.
 	HttpPublisher PublisherKind = "http"
 )
 
 type (
 	// PublisherKind represents the kind of publisher to use in order to announce a new
-	// advertisement to the network.
+	// metadata to the network.
 	// See: WithPublisherKind, NoPublisher, DataTransferPublisher, HttpPublisher.
 	PublisherKind string
 
@@ -45,7 +45,7 @@ type (
 		h  host.Host
 		// key is always initialized from the host peerstore.
 		// Setting an explicit identity must not be exposed unless it is tightly coupled with the
-		// host identity. Otherwise, the signature of advertisement will not match the libp2p host
+		// host identity. Otherwise, the signature of metadata will not match the libp2p host
 		// ID.
 		key crypto.PrivKey
 
@@ -106,8 +106,8 @@ func (o *options) retrievalAddrsAsString() []string {
 	return ras
 }
 
-// WithPublisherKind sets the kind of publisher used to announce new advertisements.
-// If unset, advertisements are only stored locally and no announcements are made.
+// WithPublisherKind sets the kind of publisher used to announce new metadatas.
+// If unset, metadatas are only stored locally and no announcements are made.
 // See: PublisherKind.
 func WithPublisherKind(k PublisherKind) Option {
 	return func(o *options) error {
@@ -162,7 +162,7 @@ func WithHost(h host.Host) Option {
 	}
 }
 
-// WithDatastore sets the datastore that is used by the engine to store advertisements.
+// WithDatastore sets the datastore that is used by the engine to store metadatas.
 // If unspecified, an ephemeral in-memory datastore is used.
 // See: datastore.NewMapDatastore.
 func WithDatastore(ds datastore.Batching) Option {
@@ -173,7 +173,7 @@ func WithDatastore(ds datastore.Batching) Option {
 }
 
 // WithRetrievalAddrs sets the addresses that specify where to get the content corresponding to an
-// indexing advertisement.
+// indexing metadata.
 // If unspecified, the libp2p host listen addresses are used.
 // See: WithHost.
 func WithRetrievalAddrs(addr ...multiaddr.Multiaddr) Option {
@@ -183,7 +183,7 @@ func WithRetrievalAddrs(addr ...multiaddr.Multiaddr) Option {
 	}
 }
 
-// WithProvider sets the peer and addresses for the provider to put in indexing advertisements.
+// WithProvider sets the peer and addresses for the provider to put in indexing metadatas.
 // This value overrides `WithRetrievalAddrs`
 func WithProvider(provider peer.AddrInfo) Option {
 	return func(o *options) error {
