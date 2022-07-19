@@ -151,6 +151,7 @@ func (c *Config) PopulateDefaults() {
 	c.AdminServer.PopulateDefaults()
 	c.P2pServer.PopulateDefaults()
 	c.Datastore.PopulateDefaults()
+	c.IngestCfg.PopulateDefaults()
 }
 
 func (c *Config) Validate() error {

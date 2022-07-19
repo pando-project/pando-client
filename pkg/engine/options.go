@@ -6,6 +6,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 	"github.com/libp2p/go-libp2p"
+	"pandoClient/cmd/server/command/config"
 	"time"
 
 	datatransfer "github.com/filecoin-project/go-data-transfer"
@@ -52,6 +53,7 @@ type (
 		provider       peer.AddrInfo
 		pandoAddrinfo  peer.AddrInfo
 		pandoAPIClient *resty.Client
+		checkInterval  time.Duration
 
 		pubKind            PublisherKind
 		pubDT              datatransfer.Manager
@@ -67,6 +69,7 @@ func newOptions(o ...Option) (*options, error) {
 		pubKind:           NoPublisher,
 		pubHttpListenAddr: "0.0.0.0:9022",
 		pubTopicName:      "/pando/v0.0.1",
+		checkInterval:     time.Minute,
 	}
 
 	for _, apply := range o {
@@ -217,6 +220,13 @@ func WithPandoAPIClient(url string, connectTimeout time.Duration) Option {
 	return func(o *options) error {
 		httpClient := resty.New().SetBaseURL(url).SetTimeout(connectTimeout).SetDebug(false)
 		o.pandoAPIClient = httpClient
+		return nil
+	}
+}
+
+func WithCheckInterval(duration config.Duration) Option {
+	return func(o *options) error {
+		o.checkInterval = time.Duration(duration)
 		return nil
 	}
 }
