@@ -3,6 +3,7 @@ package adminserver
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/ipfs/go-cid"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"net/http"
@@ -85,6 +86,28 @@ func (s *Server) showList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, http.StatusOK, NewOKResponse("sync successfully!", clist))
+}
+
+func (s *Server) cat(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	cidStr := vars["cid"]
+	c, err := cid.Decode(cidStr)
+	if err != nil {
+		msg := fmt.Sprintf("invalid cid to cat: %v", err)
+		logger.Errorf(msg)
+		respond(w, http.StatusBadRequest, NewErrorResponse(http.StatusBadRequest, msg))
+		return
+	}
+
+	res, err := s.e.CatCid(context.Background(), c)
+	if err != nil {
+		msg := fmt.Sprintf("failed to cat data for cid: %s: %v", c.String(), err)
+		logger.Errorf(msg)
+		respond(w, http.StatusInternalServerError, NewErrorResponse(http.StatusInternalServerError, msg))
+		return
+	}
+
+	respond(w, http.StatusOK, NewOKResponse("cat successfully!", res))
 }
 
 func (s *Server) syncWithProvider(w http.ResponseWriter, r *http.Request) {

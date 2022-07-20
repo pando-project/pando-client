@@ -30,6 +30,8 @@ func NewRoot() *cobra.Command {
 		AddFileCommand(),
 		SyncCommand(),
 		ProviderSyncCommand(),
+		CidListCommand(),
+		CatCommand(),
 	}
 	rootCmd.AddCommand(childCommands...)
 

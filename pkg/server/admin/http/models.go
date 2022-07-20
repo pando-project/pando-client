@@ -47,7 +47,11 @@ func NewOKResponse(message string, data interface{}) *ResponseJson {
 	if ok {
 		err := json.Unmarshal(byteData, &res)
 		if err != nil {
-			// todo failed unmarshal the []byte result(json)
+			return &ResponseJson{
+				Code:    http.StatusOK,
+				Message: message,
+				Data:    string(byteData),
+			}
 		} else {
 			return &ResponseJson{
 				Code:    http.StatusOK,

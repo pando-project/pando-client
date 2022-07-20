@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	dsn "github.com/ipfs/go-datastore/namespace"
 	"github.com/ipld/go-ipld-prime"
+	"github.com/ipld/go-ipld-prime/codec/dagjson"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/ipld/go-ipld-prime/traversal/selector"
@@ -436,6 +438,60 @@ func (e *Engine) checkSyncStatus(checkList map[string]struct{}) error {
 		}
 	}
 	return nil
+}
+
+func (e *Engine) CatCid(ctx context.Context, c cid.Cid) ([]byte, error) {
+	n, err := e.lsys.Load(ipld.LinkContext{Ctx: ctx}, cidlink.Link{Cid: c}, schema.MetadataPrototype)
+	if err != nil {
+		if err == datastore.ErrNotFound {
+			logger.Infof("not found cid: %s locally, try sync from Pando", c.String())
+			n, err = e.catRemote(ctx, c)
+			if err != nil {
+				logger.Errorf("failed to sync cid: %s from Pando, err: %v", c.String(), err)
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+	meta, err := schema.UnwrapMetadata(n)
+	if err != nil {
+		return nil, err
+	}
+	dataNode := meta.Payload
+	bytesRes, err := dataNode.AsBytes()
+	// bytes node
+	if err == nil {
+		return bytesRes, nil
+	} else {
+		// try dagjson encode
+		buf := bytes.Buffer{}
+		err = dagjson.Encode(dataNode, &buf)
+		if err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
+}
+
+func (e *Engine) catRemote(ctx context.Context, c cid.Cid) (datamodel.Node, error) {
+	syncCids, err := e.Sync(ctx, c.String(), 1, "")
+	if err != nil {
+		return nil, err
+	}
+	if len(syncCids) != 1 {
+		logger.Errorf("sync successfully but got wrong node number: %d, expected: 1", len(syncCids))
+		return nil, fmt.Errorf("wrong nodes number")
+	}
+	if !syncCids[0].Equals(c) {
+		logger.Errorf("sync node dismatched the cid, expected: %s, got: %s", c.String(), syncCids[0].String())
+		return nil, fmt.Errorf("sync node dismatched cid")
+	}
+	n, err := e.lsys.Load(ipld.LinkContext{Ctx: ctx}, cidlink.Link{Cid: c}, schema.MetadataPrototype)
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
 }
 
 func (e *Engine) Shutdown() error {

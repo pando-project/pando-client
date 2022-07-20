@@ -46,7 +46,10 @@ func New(h host.Host, e *engine.Engine, o ...Option) (*Server, error) {
 	r.HandleFunc("/admin/sync", s.sync).
 		Methods(http.MethodPost)
 
-	r.HandleFunc("/admin/showlist", s.showList).
+	r.HandleFunc("/admin/cidlist", s.showList).
+		Methods(http.MethodGet)
+
+	r.HandleFunc("/admin/cat/{cid}", s.cat).
 		Methods(http.MethodGet)
 
 	r.HandleFunc("/admin/syncprovider", s.syncWithProvider).
