@@ -180,6 +180,26 @@ func (e *Engine) GetCheckList(ctx context.Context) (map[string]struct{}, error) 
 	return res, err
 }
 
+// PublishLatest re-publishes the latest existing metadata to pubsub.
+func (e *Engine) PublishLatest(ctx context.Context) (cid.Cid, error) {
+	metaCid, err := e.getLatestMetaCid(ctx)
+	if err != nil {
+		return cid.Undef, err
+	}
+	if metaCid.Equals(cid.Undef) {
+		return cid.Undef, fmt.Errorf("no pushed metadata to announce, skip announce")
+	}
+	logger.Infow("Publishing latest metadata", "cid", metaCid)
+
+	// update but not add to the checklist
+	err = e.publisher.UpdateRoot(ctx, metaCid)
+	if err != nil {
+		return cid.Undef, err
+	}
+
+	return metaCid, nil
+}
+
 func (e *Engine) Publish(ctx context.Context, metadata schema.Metadata) (cid.Cid, error) {
 	c, err := e.PublishLocal(ctx, metadata)
 	if err != nil {
@@ -445,7 +465,10 @@ func (e *Engine) CatCid(ctx context.Context, c cid.Cid) ([]byte, error) {
 	if err != nil {
 		if err == datastore.ErrNotFound {
 			logger.Infof("not found cid: %s locally, try sync from Pando", c.String())
-			n, err = e.catRemote(ctx, c)
+			// todo: the context can not break the sync while timeout, we need a method to break
+			cctx, cncl := context.WithTimeout(ctx, time.Second*15)
+			defer cncl()
+			n, err = e.catRemote(cctx, c)
 			if err != nil {
 				logger.Errorf("failed to sync cid: %s from Pando, err: %v", c.String(), err)
 				return nil, err

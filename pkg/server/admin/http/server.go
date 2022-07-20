@@ -40,6 +40,9 @@ func New(h host.Host, e *engine.Engine, o ...Option) (*Server, error) {
 	s := &Server{server, l, h, e}
 
 	// Set protocol handlers
+	r.HandleFunc("/admin/announce", s.announce).
+		Methods(http.MethodPost)
+
 	r.HandleFunc("/admin/addfile", s.addFile).
 		Methods(http.MethodPost)
 

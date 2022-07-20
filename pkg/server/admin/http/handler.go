@@ -10,6 +10,19 @@ import (
 	"os"
 )
 
+func (s *Server) announce(w http.ResponseWriter, r *http.Request) {
+	logger.Infow("received announce request")
+	c, err := s.e.PublishLatest(context.Background())
+	if err != nil {
+		msg := fmt.Sprintf("failed to announce latest metadata: %v", err)
+		logger.Errorf(msg)
+		respond(w, http.StatusInternalServerError, NewErrorResponse(http.StatusInternalServerError, msg))
+		return
+	}
+
+	respond(w, http.StatusOK, NewOKResponse(fmt.Sprintf("announce latest metadata successfully! cid: %s", c.String()), nil))
+}
+
 func (s *Server) addFile(w http.ResponseWriter, r *http.Request) {
 	logger.Infow("received import file request")
 
@@ -37,12 +50,7 @@ func (s *Server) addFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := &ResponseJson{
-		Code:    200,
-		Message: fmt.Sprintf("successfully add file, cid: %s", c.String()),
-		Data:    nil,
-	}
-	respond(w, http.StatusOK, resp)
+	respond(w, http.StatusOK, NewOKResponse(fmt.Sprintf("successfully add file, cid: %s", c.String()), nil))
 }
 
 func (s *Server) sync(w http.ResponseWriter, r *http.Request) {

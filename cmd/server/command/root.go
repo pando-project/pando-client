@@ -27,6 +27,7 @@ func NewRoot() *cobra.Command {
 	childCommands := []*cobra.Command{
 		InitCmd(),
 		DaemonCmd(),
+		AnnounceCommand(),
 		AddFileCommand(),
 		SyncCommand(),
 		ProviderSyncCommand(),
