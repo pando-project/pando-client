@@ -151,18 +151,9 @@ func DaemonCmd() *cobra.Command {
 				errChan <- adminServer.Start()
 			}()
 
-			// todo: move to other place, connect with Pando
-			go func() {
-				err = h.Connect(ctx, *pandoAddrInfo)
-				if err != nil {
-					logger.Errorf("failed to connect with Pando, err: %v", err)
-				}
-				h.ConnManager().Protect(pandoAddrInfo.ID, "pandoConnect")
-			}()
-
 			// If there are bootstrap peers and bootstrapping is enabled, then try to
 			// connect to the minimum set of peers.
-			if len(cfg.Bootstrap.Peers) != 0 && cfg.Bootstrap.MinimumPeers != 0 {
+			if cfg.Bootstrap.MinimumPeers != 0 {
 				addrs, err := cfg.Bootstrap.PeerAddrs()
 				if err != nil {
 					return fmt.Errorf("bad bootstrap peer: %s", err)
@@ -170,7 +161,7 @@ func DaemonCmd() *cobra.Command {
 
 				pandoAddrInfo, err := cfg.PandoInfo.AddrInfo()
 				if err != nil {
-					return fmt.Errorf("bad bootstrap peer: %s", err)
+					return fmt.Errorf("invalid pando addrinfo: %s", err)
 				}
 				logger.Infow(pandoAddrInfo.String())
 
@@ -178,6 +169,9 @@ func DaemonCmd() *cobra.Command {
 
 				bootCfg := bootstrap.BootstrapConfigWithPeers(addrs)
 				bootCfg.MinPeerThreshold = cfg.Bootstrap.MinimumPeers
+				// move to config after
+				bootCfg.Period = time.Second * 30
+				bootCfg.ConnectionTimeout = time.Second * 5
 
 				bootstrapper, err := bootstrap.Bootstrap(peerID, h, nil, bootCfg)
 				if err != nil {

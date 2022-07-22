@@ -42,6 +42,11 @@ func (b *Bootstrap) SetPeers(addrs []peer.AddrInfo) {
 	b.Peers = addrsToPeers(addrs)
 }
 
+func (b *Bootstrap) AddPeerWithAddrInfo(addr peer.AddrInfo) {
+	peers := addrsToPeers([]peer.AddrInfo{addr})
+	b.Peers = append(b.Peers, peers...)
+}
+
 // defaultBootstrapPeers returns the (parsed) set of default bootstrap peers.
 // Panics on failure as that is a problem with the hardoded addresses.
 func defaultBootstrapPeers() []string {

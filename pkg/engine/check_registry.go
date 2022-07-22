@@ -61,7 +61,7 @@ func (cr *checkRegistry) run() {
 	for {
 		select {
 		case _ = <-cr.closing:
-			logger.Infof("quit gracefully...")
+			logger.Infow("quit gracefully...")
 			close(cr.closeDone)
 			return
 		case _ = <-tickerCh:
@@ -77,8 +77,8 @@ func (cr *checkRegistry) run() {
 				_checkMap[c] = s
 			}
 			cr.checkMutex.Unlock()
-			// check and delete checked cid in e.checkList
 			_ = cr.checkSyncStatuses(_checkMap)
+			// todo: checkMap will lose if process is shutdown before first check
 			err := cr.persistCheckList(context.Background())
 			if err != nil {
 				logger.Errorf("failed to persist check list, err: %v", err)
@@ -150,14 +150,11 @@ func (cr *checkRegistry) checkSyncStatus(c cid.Cid, status *syncStatus) error {
 		delete(cr.checkMap, c.String())
 		cr.checkMutex.Unlock()
 	} else {
-		cr.checkMutex.Lock()
-		cr.checkMutex.Unlock()
-		logger.Warnw("not in Pando, cid: ", c.String())
 		// option in the copied ptr
 		status.CheckTimes++
 		// republish if arrived max check times or max interval
 		if status.CheckTimes >= cr.maxTimeToRepublish || time.Now().Sub(status.publishTime) > maxIntervalToRepublish {
-
+			logger.Infow("updated cid not stored in Pando, republish it....", "cid: ", c.String())
 			err = cr.e.RePublishCid(context.Background(), c)
 			if err != nil {
 				logger.Errorf("failed to re-publish cid: %s, err: %v", c.String(), err)
