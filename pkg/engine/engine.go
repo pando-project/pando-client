@@ -33,19 +33,20 @@ var (
 	logger             = log.NewSubsystemLogger()
 	dsLatestMetaKey    = datastore.NewKey("sync/meta/latest")
 	dsPushedCidListKey = datastore.NewKey("sync/meta/list")
-	dsCheckCidListKey  = datastore.NewKey("sync/meta/check")
 )
 
 // Engine is an implementation of the core reference provider interface.
 type Engine struct {
 	*options
-	lsys       ipld.LinkSystem
-	publisher  legs.Publisher
-	latestMeta cid.Cid
-	pushList   []cid.Cid
-	checkList  map[string]struct{}
-	checkMutex sync.Mutex
-	closing    chan struct{}
+	lsys         ipld.LinkSystem
+	publisher    legs.Publisher
+	latestMeta   cid.Cid
+	latestMutex  sync.Mutex
+	pushList     []cid.Cid
+	publishMutex sync.Mutex
+	cr           *checkRegistry
+	closing      chan struct{}
+	closeDone    chan struct{}
 }
 
 func New(o ...Option) (*Engine, error) {
@@ -55,9 +56,15 @@ func New(o ...Option) (*Engine, error) {
 	}
 
 	e := &Engine{
-		options: opts,
-		closing: make(chan struct{}),
+		options:   opts,
+		closing:   make(chan struct{}),
+		closeDone: make(chan struct{}),
 	}
+	e.cr, err = newCheckRegistry(e, opts.ds, e.checkInterval)
+	if err != nil {
+		return nil, err
+	}
+
 	err = e.initInfo(context.Background())
 	if err != nil {
 		return nil, err
@@ -69,23 +76,17 @@ func New(o ...Option) (*Engine, error) {
 }
 
 func (e *Engine) initInfo(ctx context.Context) error {
-	metaCid, err := e.getLatestMetaCid(ctx)
+	metaCid, err := e.getLatestMetaFromDs(ctx)
 	if err != nil {
 		return err
 	}
-	e.latestMeta = metaCid
+	e.setLatestMeta(ctx, metaCid)
 
 	pushedList, err := e.GetPushedList(ctx)
 	if err != nil {
 		return err
 	}
 	e.pushList = pushedList
-
-	cl, err := e.GetCheckList(ctx)
-	if err != nil {
-		return err
-	}
-	e.checkList = cl
 
 	return nil
 }
@@ -100,7 +101,7 @@ func (e *Engine) Start(ctx context.Context) error {
 	}
 
 	// Initialize publisher with latest Meta CID.
-	metaCid, err := e.getLatestMetaCid(ctx)
+	metaCid, err := e.getLatestMetaFromDs(ctx)
 	if err != nil {
 		return fmt.Errorf("could not get latest metadata cid: %w", err)
 	}
@@ -110,7 +111,7 @@ func (e *Engine) Start(ctx context.Context) error {
 		}
 	}
 
-	go e.runCheck()
+	go e.cr.run()
 
 	return nil
 }
@@ -138,7 +139,7 @@ func (e *Engine) newPublisher() (legs.Publisher, error) {
 	}
 }
 
-func (e *Engine) getLatestMetaCid(ctx context.Context) (cid.Cid, error) {
+func (e *Engine) getLatestMetaFromDs(ctx context.Context) (cid.Cid, error) {
 	b, err := e.ds.Get(ctx, dsLatestMetaKey)
 	if err != nil {
 		if err == datastore.ErrNotFound {
@@ -163,26 +164,29 @@ func (e *Engine) GetPushedList(ctx context.Context) ([]cid.Cid, error) {
 	return res, err
 }
 
-func (e *Engine) GetCheckList(ctx context.Context) (map[string]struct{}, error) {
-	b, err := e.ds.Get(ctx, dsCheckCidListKey)
-	if err != nil {
-		if err == datastore.ErrNotFound {
-			return make(map[string]struct{}), nil
-		}
-		return nil, err
-	}
-	var res map[string]struct{}
-	err = json.Unmarshal(b, &res)
-	if err != nil {
-		return nil, err
-	}
+//func (e *Engine) GetCheckList(ctx context.Context) (map[string]*syncStatus, error) {
+//	b, err := e.ds.Get(ctx, dsCheckCidListKey)
+//	if err != nil {
+//		if err == datastore.ErrNotFound {
+//			return make(map[string]struct{}), nil
+//		}
+//		return nil, err
+//	}
+//	var res map[string]*syncStatus
+//	err = json.Unmarshal(b, &res)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return res, err
+//}
 
-	return res, err
-}
+// RePublishLatest re-publishes the latest existing metadata to pubsub.
+func (e *Engine) RePublishLatest(ctx context.Context) (cid.Cid, error) {
+	e.publishMutex.Lock()
+	defer e.publishMutex.Unlock()
 
-// PublishLatest re-publishes the latest existing metadata to pubsub.
-func (e *Engine) PublishLatest(ctx context.Context) (cid.Cid, error) {
-	metaCid, err := e.getLatestMetaCid(ctx)
+	metaCid, err := e.getLatestMetaFromDs(ctx)
 	if err != nil {
 		return cid.Undef, err
 	}
@@ -200,6 +204,20 @@ func (e *Engine) PublishLatest(ctx context.Context) (cid.Cid, error) {
 	return metaCid, nil
 }
 
+func (e *Engine) RePublishCid(ctx context.Context, c cid.Cid) error {
+	e.publishMutex.Lock()
+	defer e.publishMutex.Unlock()
+	// recover the root cid
+	defer e.publisher.SetRoot(ctx, e.getLatestMeta(ctx))
+
+	err := e.publisher.UpdateRoot(ctx, c)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Publish todo: be sure that the previous cid is correct if you call this function. With concurrent calling, previous cid may be wrong
 func (e *Engine) Publish(ctx context.Context, metadata schema.Metadata) (cid.Cid, error) {
 	c, err := e.PublishLocal(ctx, metadata)
 	if err != nil {
@@ -216,14 +234,9 @@ func (e *Engine) Publish(ctx context.Context, metadata schema.Metadata) (cid.Cid
 			log.Errorw("Failed to announce metadata on pubsub channel ", "err", err)
 			return cid.Undef, err
 		}
-		e.checkMutex.Lock()
-		if _, exist := e.checkList[c.String()]; !exist {
-			e.checkList[c.String()] = struct{}{}
-		}
-		e.checkMutex.Unlock()
-		err = e.persistCheckList(ctx)
+		err = e.cr.addCheck(c)
 		if err != nil {
-			log.Errorf("failed to persist check list, err: %v", err)
+			log.Errorf("failed to add cid: %s to check list, err: %v", c.String(), err)
 			return cid.Undef, err
 		}
 	} else {
@@ -260,11 +273,23 @@ func (e *Engine) PublishLocal(ctx context.Context, adv schema.Metadata) (cid.Cid
 	return c, nil
 }
 
+func (e *Engine) setLatestMeta(ctx context.Context, c cid.Cid) {
+	e.latestMutex.Lock()
+	defer e.latestMutex.Unlock()
+	e.latestMeta = c
+}
+
+func (e *Engine) getLatestMeta(ctx context.Context) cid.Cid {
+	e.latestMutex.Lock()
+	defer e.latestMutex.Unlock()
+	return e.latestMeta
+}
+
 func (e *Engine) updateLatestMeta(ctx context.Context, c cid.Cid) error {
 	if c == cid.Undef {
 		return fmt.Errorf("meta cid can not be nil")
 	}
-	e.latestMeta = c
+	e.setLatestMeta(ctx, c)
 	return e.ds.Put(ctx, dsLatestMetaKey, c.Bytes())
 }
 
@@ -280,25 +305,28 @@ func (e *Engine) updatePushedList(ctx context.Context, list []cid.Cid) error {
 	return e.ds.Put(ctx, dsPushedCidListKey, b)
 }
 
-func (e *Engine) persistCheckList(ctx context.Context) error {
-	e.checkMutex.Lock()
-	defer e.checkMutex.Unlock()
-	if e.checkList == nil || len(e.checkList) == 0 {
-		logger.Info("nil to update")
-		return nil
-	}
-	b, err := json.Marshal(e.checkList)
-	if err != nil {
-		return err
-	}
-	return e.ds.Put(ctx, dsCheckCidListKey, b)
-}
+//func (e *Engine) persistCheckList(ctx context.Context) error {
+//	e.checkMutex.Lock()
+//	defer e.checkMutex.Unlock()
+//	if e.checkList == nil || len(e.checkList) == 0 {
+//		logger.Info("nil to update")
+//		return nil
+//	}
+//	b, err := json.Marshal(e.checkList)
+//	if err != nil {
+//		return err
+//	}
+//	return e.ds.Put(ctx, dsCheckCidListKey, b)
+//}
 
 func (e *Engine) PublishBytesData(ctx context.Context, data []byte) (cid.Cid, error) {
+	e.publishMutex.Lock()
+	defer e.publishMutex.Unlock()
 	var prevLink datamodel.Link
 	var link datamodel.Link
-	if e.latestMeta.Defined() {
-		link = ipld.Link(cidlink.Link{Cid: e.latestMeta})
+	preCid := e.getLatestMeta(ctx)
+	if preCid.Defined() {
+		link = ipld.Link(cidlink.Link{Cid: preCid})
 		prevLink = link
 	} else {
 		prevLink = nil
@@ -390,75 +418,75 @@ func (e *Engine) SyncWithProvider(ctx context.Context, provider string, depth in
 	return nil
 }
 
-func (e *Engine) runCheck() {
-	tickerCh := time.Tick(time.Duration(e.checkInterval))
-	for {
-		select {
-		case _ = <-e.closing:
-			logger.Infof("quit gracefully...")
-			return
-		case _ = <-tickerCh:
-			// copy check map
-			_checkMap := make(map[string]struct{})
-			e.checkMutex.Lock()
-			if len(e.checkList) == 0 {
-				e.checkMutex.Unlock()
-				continue
-			}
-			for k, _ := range e.checkList {
-				_checkMap[k] = struct{}{}
-			}
-			e.checkMutex.Unlock()
-			// check and delete checked cid in e.checkList
-			_ = e.checkSyncStatus(_checkMap)
-			err := e.persistCheckList(context.Background())
-			if err != nil {
-				logger.Errorf("failed to persist check list, err: %v", err)
-			}
-		}
-	}
-}
+//func (e *Engine) runCheck() {
+//	tickerCh := time.Tick(time.Duration(e.checkInterval))
+//	for {
+//		select {
+//		case _ = <-e.closing:
+//			logger.Infof("quit gracefully...")
+//			return
+//		case _ = <-tickerCh:
+//			// copy check map
+//			_checkMap := make(map[string]struct{})
+//			e.checkMutex.Lock()
+//			if len(e.checkList) == 0 {
+//				e.checkMutex.Unlock()
+//				continue
+//			}
+//			for k, _ := range e.checkList {
+//				_checkMap[k] = struct{}{}
+//			}
+//			e.checkMutex.Unlock()
+//			// check and delete checked cid in e.checkList
+//			_ = e.checkSyncStatus(_checkMap)
+//			err := e.persistCheckList(context.Background())
+//			if err != nil {
+//				logger.Errorf("failed to persist check list, err: %v", err)
+//			}
+//		}
+//	}
+//}
 
-func (e *Engine) checkSyncStatus(checkList map[string]struct{}) error {
-	for c := range checkList {
-		// quit if closed
-		select {
-		case _ = <-e.closing:
-			return nil
-		default:
-		}
-
-		res, err := handleResError(e.pandoAPIClient.R().Get("/metadata/inclusion?cid=" + c))
-		if err != nil {
-			logger.Errorf("failed to check status in Pando for cid: %s, err: %v", c, err)
-			continue
-		}
-		resJson := inclusionResJson{}
-		err = json.Unmarshal(res.Body(), &resJson)
-		if err != nil {
-			logger.Errorf("failed to unmarshal the metaInclusion from PandoAPI result: %v", err)
-			continue
-		}
-		//inclusion, ok := resJson.Data.(MetaInclusion)
-		//if !ok {
-		//	logger.Errorf("got http response but unexpected inclusion data: %v", resJson.Data)
-		//	continue
-		//}
-		inclusion := resJson.Data
-		if inclusion == nil {
-			logger.Errorf("got http response but unexpected inclusion data: %v", resJson.Data)
-			//	continue
-		}
-		// if data is stored in Pando, delete it from checkList
-		// todo: if a cid is not stored in Pando after some times check, republish it
-		if inclusion.InPando {
-			e.checkMutex.Lock()
-			delete(e.checkList, c)
-			e.checkMutex.Unlock()
-		}
-	}
-	return nil
-}
+//func (e *Engine) checkSyncStatus(checkList map[string]struct{}) error {
+//	for c := range checkList {
+//		// quit if closed
+//		select {
+//		case _ = <-e.closing:
+//			return nil
+//		default:
+//		}
+//
+//		res, err := handleResError(e.pandoAPIClient.R().Get("/metadata/inclusion?cid=" + c))
+//		if err != nil {
+//			logger.Errorf("failed to check status in Pando for cid: %s, err: %v", c, err)
+//			continue
+//		}
+//		resJson := inclusionResJson{}
+//		err = json.Unmarshal(res.Body(), &resJson)
+//		if err != nil {
+//			logger.Errorf("failed to unmarshal the metaInclusion from PandoAPI result: %v", err)
+//			continue
+//		}
+//		//inclusion, ok := resJson.Data.(MetaInclusion)
+//		//if !ok {
+//		//	logger.Errorf("got http response but unexpected inclusion data: %v", resJson.Data)
+//		//	continue
+//		//}
+//		inclusion := resJson.Data
+//		if inclusion == nil {
+//			logger.Errorf("got http response but unexpected inclusion data: %v", resJson.Data)
+//			//	continue
+//		}
+//		// if data is stored in Pando, delete it from checkList
+//		// todo: if a cid is not stored in Pando after some times check, republish it
+//		if inclusion.InPando {
+//			e.checkMutex.Lock()
+//			delete(e.checkList, c)
+//			e.checkMutex.Unlock()
+//		}
+//	}
+//	return nil
+//}
 
 func (e *Engine) CatCid(ctx context.Context, c cid.Cid) ([]byte, error) {
 	n, err := e.lsys.Load(ipld.LinkContext{Ctx: ctx}, cidlink.Link{Cid: c}, schema.MetadataPrototype)
@@ -525,6 +553,12 @@ func (e *Engine) Shutdown() error {
 		}
 	}
 	close(e.closing)
+	go func() {
+		e.cr.close()
+		close(e.closeDone)
+	}()
+	<-e.closeDone
+
 	return errs
 }
 

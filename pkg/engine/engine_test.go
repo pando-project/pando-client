@@ -28,21 +28,21 @@ func TestEngineUpdateInfo(t *testing.T) {
 	cid1, err := e.PublishBytesData(ctx, []byte("123"))
 	assert.NoError(t, err)
 
-	cc1, err := e.getLatestMetaCid(ctx)
+	cc1, err := e.getLatestMetaFromDs(ctx)
 	assert.NoError(t, err)
 	assert.True(t, cc1.Equals(cid1))
 
 	cid2, err := e.PublishBytesData(ctx, []byte("abc"))
 	assert.NoError(t, err)
 
-	cc2, err := e.getLatestMetaCid(ctx)
+	cc2, err := e.getLatestMetaFromDs(ctx)
 	assert.NoError(t, err)
 	assert.True(t, cc2.Equals(cid2))
 
 	cid3, err := e.PublishBytesData(ctx, []byte("123dsa"))
 	assert.NoError(t, err)
 
-	cc3, err := e.getLatestMetaCid(ctx)
+	cc3, err := e.getLatestMetaFromDs(ctx)
 	assert.NoError(t, err)
 	assert.True(t, cc3.Equals(cid3))
 

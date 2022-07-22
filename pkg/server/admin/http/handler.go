@@ -12,7 +12,7 @@ import (
 
 func (s *Server) announce(w http.ResponseWriter, r *http.Request) {
 	logger.Infow("received announce request")
-	c, err := s.e.PublishLatest(context.Background())
+	c, err := s.e.RePublishLatest(context.Background())
 	if err != nil {
 		msg := fmt.Sprintf("failed to announce latest metadata: %v", err)
 		logger.Errorf(msg)
