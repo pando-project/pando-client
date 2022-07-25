@@ -10,9 +10,15 @@ const (
 	defaultCheckInterval                  = Duration(time.Minute)
 )
 
+// MITR is short for MaxIntervalToRepublish
+var MITR int
+
 type IngestCfg struct {
 	// todo: not use temporary
 	PersistAfterSend bool
+
+	// the number of hours to republish.
+	MaxIntervalToRepublish Duration
 
 	// check whether pushed data is stored in Pando
 	CheckInterval Duration
@@ -23,9 +29,10 @@ type IngestCfg struct {
 
 func NewIngestCfg() IngestCfg {
 	return IngestCfg{
-		PersistAfterSend: defaultPersistAfterSend,
-		PublisherKind:    DTSyncPublisherKind,
-		CheckInterval:    defaultCheckInterval,
+		PersistAfterSend:       defaultPersistAfterSend,
+		PublisherKind:          DTSyncPublisherKind,
+		CheckInterval:          defaultCheckInterval,
+		MaxIntervalToRepublish: Duration(time.Duration(MITR) * time.Hour),
 	}
 }
 

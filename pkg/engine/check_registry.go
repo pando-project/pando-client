@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-const (
-	maxIntervalToRepublish = time.Hour * 24
-)
-
 var (
 	dsCheckRegistryKey = datastore.NewKey("sync/meta/checkRegistry")
 	dsCheckCidListKey  = datastore.NewKey("/checkMap")
@@ -153,7 +149,7 @@ func (cr *checkRegistry) checkSyncStatus(c cid.Cid, status *syncStatus) error {
 		// option in the copied ptr
 		status.CheckTimes++
 		// republish if arrived max check times or max interval
-		if status.CheckTimes >= cr.maxTimeToRepublish || time.Now().Sub(status.publishTime) > maxIntervalToRepublish {
+		if status.CheckTimes >= cr.maxTimeToRepublish || time.Now().Sub(status.publishTime) > cr.e.options.maxIntervalToRepublish {
 			logger.Infow("updated cid not stored in Pando, republish it....", "cid: ", c.String())
 			err = cr.e.RePublishCid(context.Background(), c)
 			if err != nil {
