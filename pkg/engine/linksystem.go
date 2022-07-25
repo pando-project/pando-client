@@ -30,28 +30,28 @@ func (e *Engine) mkLinkSystem() ipld.LinkSystem {
 			return nil, err
 		}
 
-		// If data was retrieved from the datastore, this may be an advertisement.
+		// If data was retrieved from the datastore, this may be a metadata.
 		if len(val) != 0 {
-			// Decode the node to check its type to see if it is an Advertisement.
+			// Decode the node to check its type to see if it is a metadata.
 			n, err := decodeIPLDNode(bytes.NewBuffer(val))
 			if err != nil {
 				logger.Errorf("Could not decode IPLD node for potential advertisement: %s", err)
 				return nil, err
 			}
 			// If this was an advertisement, then return it.
-			if isAdvertisement(n) {
+			if isMetadata(n) {
 				logger.Debugw("Retrieved advertisement from datastore", "cid", c, "size", len(val))
 				return bytes.NewBuffer(val), nil
 			}
 			logger.Debugw("Retrieved non-advertisement object from datastore", "cid", c, "size", len(val))
 		}
 
-		// If no value was populated it means that nothing was found
-		// in the multiple datastores.
-		if len(val) == 0 {
-			logger.Errorf("No object found in linksystem for CID (%s)", c)
-			return nil, datastore.ErrNotFound
-		}
+		//// If no value was populated it means that nothing was found
+		//// in the multiple datastores.
+		//if len(val) == 0 {
+		//	logger.Errorf("No object found in linksystem for CID (%s)", c)
+		//	return nil, datastore.ErrNotFound
+		//}
 
 		return bytes.NewBuffer(val), nil
 	}
@@ -100,9 +100,11 @@ func decodeIPLDNode(r io.Reader) (ipld.Node, error) {
 	return nb.Build(), nil
 }
 
-// isAdvertisement loosely checks if an IPLD node is an advertisement or an index.
+// isMetadata loosely checks if an IPLD node is an advertisement or an index.
 // This is done simply by checking if `Signature` filed is present.
-func isAdvertisement(n ipld.Node) bool {
-	indexID, _ := n.LookupByString("Signature")
-	return indexID != nil
+func isMetadata(n ipld.Node) bool {
+	signature, _ := n.LookupByString("Signature")
+	provider, _ := n.LookupByString("Provider")
+	payload, _ := n.LookupByString("Payload")
+	return signature != nil && provider != nil && payload != nil
 }

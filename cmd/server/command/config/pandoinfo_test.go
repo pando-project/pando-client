@@ -5,7 +5,7 @@ import (
 )
 
 func TestGetPandoInfoFromKenLabs(t *testing.T) {
-	info, err := getPandoInfoFromKenLabs()
+	info, err := GetPandoInfo()
 	if err != nil {
 		t.Error(err)
 	}

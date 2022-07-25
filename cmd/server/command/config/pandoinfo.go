@@ -57,7 +57,7 @@ func (pinfo *PandoInfo) AddrInfo() (*peer.AddrInfo, error) {
 	return peerInfo, nil
 }
 
-func getPandoInfoFromKenLabs() (*PandoInfo, error) {
+func GetPandoInfo() (*PandoInfo, error) {
 	res, err := http.Get(kenlbasInfoUrl)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func getPandoInfoFromKenLabs() (*PandoInfo, error) {
 }
 
 func NewPandoInfo() PandoInfo {
-	pinfo, err := getPandoInfoFromKenLabs()
+	pinfo, err := GetPandoInfo()
 	if err != nil {
 		fmt.Printf("failed to get PandoInfo from Kenlabs http api...Please fill manually, err: %v", err.Error())
 		return PandoInfo{TopicName: "/pando/v0.0.1"}
