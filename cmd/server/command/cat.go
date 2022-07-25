@@ -9,15 +9,15 @@ var catCid string
 
 func CatCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "cidlist",
-		Short: "display the cid list of you pushed",
+		Use:   "cat",
+		Short: "show IPLD Node data by cid",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := cid.Decode(catCid); err != nil {
 				return err
 			}
 			res, err := Client.R().
 				SetHeader("Content-Type", "application/octet-stream").
-				Get("/admin/cidlist?cid=" + catCid)
+				Get("/admin/cat?cid=" + catCid)
 			if err != nil {
 				return err
 			}
@@ -26,7 +26,7 @@ func CatCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&catCid, "cid", "c", "", "cid to cat")
+	cmd.Flags().StringVarP(&catCid, "cid", "", "", "cid to cat")
 
 	return cmd
 }
