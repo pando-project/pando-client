@@ -25,7 +25,10 @@ func (e *Engine) mkLinkSystem() ipld.LinkSystem {
 		// Get the node from main datastore. If it is in the
 		// main datastore it means it is an advertisement.
 		val, err := e.ds.Get(ctx, datastore.NewKey(c.String()))
-		if err != nil && err != datastore.ErrNotFound {
+		if err != nil {
+			if err == datastore.ErrNotFound {
+				return nil, err
+			}
 			logger.Errorf("Error getting object from datastore in linksystem: %s", err)
 			return nil, err
 		}
@@ -45,13 +48,6 @@ func (e *Engine) mkLinkSystem() ipld.LinkSystem {
 			}
 			logger.Debugw("Retrieved non-advertisement object from datastore", "cid", c, "size", len(val))
 		}
-
-		//// If no value was populated it means that nothing was found
-		//// in the multiple datastores.
-		//if len(val) == 0 {
-		//	logger.Errorf("No object found in linksystem for CID (%s)", c)
-		//	return nil, datastore.ErrNotFound
-		//}
 
 		return bytes.NewBuffer(val), nil
 	}
@@ -106,5 +102,5 @@ func isMetadata(n ipld.Node) bool {
 	signature, _ := n.LookupByString("Signature")
 	provider, _ := n.LookupByString("Provider")
 	payload, _ := n.LookupByString("Payload")
-	return signature != nil && provider != nil && payload != nil
+	return signature != nil && payload != nil && provider != nil
 }

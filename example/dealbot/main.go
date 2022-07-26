@@ -104,7 +104,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = e.SyncWithProvider(context.Background(), dealbotIDStr, 0, "")
+	err = e.Start(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	err = e.SyncWithProvider(context.Background(), dealbotIDStr, 3, "")
 	if err != nil {
 		panic(err)
 	}

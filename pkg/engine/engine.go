@@ -40,6 +40,7 @@ type Engine struct {
 	*options
 	lsys         ipld.LinkSystem
 	publisher    legs.Publisher
+	subscriber   *legs.Subscriber
 	latestMeta   cid.Cid
 	latestMutex  sync.Mutex
 	pushList     []cid.Cid
@@ -99,6 +100,11 @@ func (e *Engine) Start(ctx context.Context) error {
 		logger.Errorw("Failed to instantiate legs publisher", "err", err, "kind", e.pubKind)
 		return err
 	}
+	e.subscriber, err = e.newSubscriber()
+	if err != nil {
+		logger.Errorf("Failed to instantiate legs subscriber, err: %v", err)
+		return err
+	}
 
 	// Initialize publisher with latest Meta CID.
 	metaCid, err := e.getLatestMetaFromDs(ctx)
@@ -137,6 +143,18 @@ func (e *Engine) newPublisher() (legs.Publisher, error) {
 	default:
 		return nil, fmt.Errorf("unknown publisher kind: %s", e.pubKind)
 	}
+}
+
+func (e *Engine) newSubscriber() (*legs.Subscriber, error) {
+	ds := dsn.Wrap(e.ds, datastore.NewKey("/legs/dtsync/sub"))
+	if e.subTopicName == "" {
+		e.subTopicName = "pandoClientSubscriberTmp"
+	}
+	sub, err := legs.NewSubscriber(e.h, ds, e.lsys, e.subTopicName, nil)
+	if err != nil {
+		return nil, err
+	}
+	return sub, nil
 }
 
 func (e *Engine) getLatestMetaFromDs(ctx context.Context) (cid.Cid, error) {
@@ -329,13 +347,10 @@ func (e *Engine) Sync(ctx context.Context, c string, depth int, endCidStr string
 	}
 
 	var syncRes []cid.Cid
-	blockHook := func(_ peer.ID, rcid cid.Cid) {
+	blockHook := func(_ peer.ID, rcid cid.Cid, _ legs.SegmentSyncActions) {
 		syncRes = append(syncRes, rcid)
 	}
-	sync, err := dtsync.NewSync(e.h, e.ds, e.lsys, blockHook)
-	if err != nil {
-		return nil, err
-	}
+
 	var sel ipld.Node
 	if depth != 0 || endCid.Defined() {
 		var limiter selector.RecursionLimit
@@ -351,8 +366,8 @@ func (e *Engine) Sync(ctx context.Context, c string, depth int, endCidStr string
 		sel = legs.LegSelector(selector.RecursionLimitDepth(999999), nil)
 	}
 
-	syncer := sync.NewSyncer(e.pandoAddrinfo.ID, e.pubTopicName, nil)
-	err = syncer.Sync(ctx, syncCid, sel)
+	_, err = e.subscriber.Sync(ctx, e.pandoAddrinfo.ID, syncCid, sel, nil, legs.ScopedBlockHook(blockHook))
+
 	return syncRes, nil
 }
 

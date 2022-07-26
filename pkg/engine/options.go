@@ -60,6 +60,7 @@ type (
 		pubHttpListenAddr  string
 		pubTopicName       string
 		pubTopic           *pubsub.Topic
+		subTopicName       string
 		pubExtraGossipData []byte
 	}
 )
