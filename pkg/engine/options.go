@@ -5,6 +5,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
+	"github.com/ipld/go-ipld-prime/linking"
 	"github.com/libp2p/go-libp2p"
 	"pandoClient/cmd/server/command/config"
 	"time"
@@ -55,6 +56,7 @@ type (
 		pandoAPIClient *resty.Client
 		checkInterval  time.Duration
 
+		lsys               *linking.LinkSystem
 		pubKind            PublisherKind
 		pubDT              datatransfer.Manager
 		pubHttpListenAddr  string
@@ -172,6 +174,20 @@ func WithHost(h host.Host) Option {
 func WithDatastore(ds datastore.Batching) Option {
 	return func(o *options) error {
 		o.ds = ds
+		return nil
+	}
+}
+
+func WithLinkSystem(lsys *linking.LinkSystem) Option {
+	return func(o *options) error {
+		o.lsys = lsys
+		return nil
+	}
+}
+
+func WithSubTopicName(tname string) Option {
+	return func(o *options) error {
+		o.subTopicName = tname
 		return nil
 	}
 }

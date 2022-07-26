@@ -17,7 +17,7 @@ require (
 
 require (
 	github.com/go-resty/resty/v2 v2.7.0
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs/go-cid v0.2.0
 	github.com/ipfs/go-ds-leveldb v0.5.0
@@ -26,6 +26,11 @@ require (
 	github.com/kenlabs/pando v0.0.0-20220617085848-057d29b89071
 	github.com/libp2p/go-libp2p-pubsub v0.7.0
 	github.com/stretchr/testify v1.7.1
+)
+
+require (
+	github.com/ipfs/go-block-format v0.0.3
+	github.com/ipfs/go-ipfs-blockstore v1.2.0
 )
 
 require (
@@ -68,12 +73,14 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/ipfs/go-block-format v0.0.3 // indirect
+	github.com/ipfs/bbloom v0.0.4 // indirect
+	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.2 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.0.6 // indirect
 	github.com/ipfs/go-ipld-format v0.4.0 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
+	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-peertaskqueue v0.7.1 // indirect
 	github.com/ipld/go-codec-dagpb v1.4.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect

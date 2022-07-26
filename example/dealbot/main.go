@@ -10,7 +10,7 @@ import (
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	gsimpl "github.com/ipfs/go-graphsync/impl"
 	gsnet "github.com/ipfs/go-graphsync/network"
-	logging "github.com/ipfs/go-log/v2"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -45,9 +45,16 @@ func getPeerIDFromPrivateKeyStr(privateKeyStr string) (peer.ID, crypto.PrivKey, 
 	return peerID, privateKey, nil
 }
 
+/**
+	1. create libp2p host and store
+	2. get(set) PandoInfo
+	3. keep connectness withPando
+	4. create Engine and Start
+	5. sync data you want(with Pando). In the example, we sync with dealbot provider from Pando.
+	(6.) deal with received data
+**/
 func main() {
-	_ = logging.SetLogLevel("*", "info")
-
+	// 1. create libp2p host and store
 	peerID, privKey, err := getPeerIDFromPrivateKeyStr(clientPrivateStr)
 	if err != nil {
 		panic(err)
@@ -58,7 +65,12 @@ func main() {
 		// Use the keypair generated during init
 		libp2p.Identity(privKey),
 	)
-
+	ds, err := leveldb.NewDatastore("", nil)
+	if err != nil {
+		panic(err)
+	}
+	bs := blockstore.NewBlockstore(ds)
+	// 2. get(set) PandoInfo
 	pandoInfo, err := config.GetPandoInfo()
 	if err != nil {
 		panic(err)
@@ -67,12 +79,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	ds, err := leveldb.NewDatastore("", nil)
+	// 3. keep connectness withPando
+	err = h.Connect(context.Background(), *pandoAddrInfo)
 	if err != nil {
 		panic(err)
 	}
 
+	// 4. create Engine(init)
 	gsnet := gsnet.NewFromLibp2pHost(h)
 	dtNet := dtnetwork.NewFromLibp2pHost(h)
 	gs := gsimpl.New(context.Background(), gsnet, cidlink.DefaultLinkSystem())
@@ -86,11 +99,26 @@ func main() {
 		panic(err)
 	}
 
-	err = h.Connect(context.Background(), *pandoAddrInfo)
-	if err != nil {
-		panic(err)
-	}
+	// (6.) deal with received data
+	ch := make(chan Status, 0)
+	// compute for success rate got from linksystem
+	go func() {
+		var total float32
+		var success float32
+		for status := range ch {
+			total += 1
+			if status == Status(4) {
+				success += 1
+			}
+			successRate := success / total
+			fmt.Printf("total job numbers: %d\n", int(total))
+			fmt.Println("success rate: ", successRate)
+		}
+	}()
+	lsys := MkLinkSystem(bs, ch)
+	//  end (6.)
 
+	// 4. create Engine and Start
 	e, err := engine.New(
 		engine.WithCheckInterval(config.Duration(time.Second*5)),
 		engine.WithPandoAPIClient(pandoAPIUrl, time.Second*10),
@@ -100,6 +128,7 @@ func main() {
 		engine.WithHost(h),
 		engine.WithTopicName(pandoInfo.TopicName),
 		engine.WithPublisherKind("dtsync"),
+		engine.WithLinkSystem(&lsys),
 	)
 	if err != nil {
 		panic(err)
@@ -108,7 +137,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = e.SyncWithProvider(context.Background(), dealbotIDStr, 3, "")
+	// 5. sync data you want(with Pando). In the example, we sync with dealbot provider from Pando.
+	err = e.SyncWithProvider(context.Background(), dealbotIDStr, 1000000, "")
 	if err != nil {
 		panic(err)
 	}

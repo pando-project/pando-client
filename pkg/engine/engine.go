@@ -38,7 +38,7 @@ var (
 // Engine is an implementation of the core reference provider interface.
 type Engine struct {
 	*options
-	lsys         ipld.LinkSystem
+	lsys         *ipld.LinkSystem
 	publisher    legs.Publisher
 	subscriber   *legs.Subscriber
 	latestMeta   cid.Cid
@@ -71,7 +71,12 @@ func New(o ...Option) (*Engine, error) {
 		return nil, err
 	}
 
-	e.lsys = e.mkLinkSystem()
+	// custom linksystem
+	if opts.lsys != nil {
+		e.lsys = opts.lsys
+	} else {
+		e.lsys = e.mkLinkSystem()
+	}
 
 	return e, nil
 }
@@ -134,12 +139,12 @@ func (e *Engine) newPublisher() (legs.Publisher, error) {
 		}
 
 		if e.pubDT != nil {
-			return dtsync.NewPublisherFromExisting(e.pubDT, e.h, e.pubTopicName, e.lsys, dtOpts...)
+			return dtsync.NewPublisherFromExisting(e.pubDT, e.h, e.pubTopicName, *e.lsys, dtOpts...)
 		}
 		ds := dsn.Wrap(e.ds, datastore.NewKey("/legs/dtsync/pub"))
-		return dtsync.NewPublisher(e.h, ds, e.lsys, e.pubTopicName, dtOpts...)
+		return dtsync.NewPublisher(e.h, ds, *e.lsys, e.pubTopicName, dtOpts...)
 	case HttpPublisher:
-		return httpsync.NewPublisher(e.pubHttpListenAddr, e.lsys, e.h.ID(), e.key)
+		return httpsync.NewPublisher(e.pubHttpListenAddr, *e.lsys, e.h.ID(), e.key)
 	default:
 		return nil, fmt.Errorf("unknown publisher kind: %s", e.pubKind)
 	}
@@ -150,7 +155,7 @@ func (e *Engine) newSubscriber() (*legs.Subscriber, error) {
 	if e.subTopicName == "" {
 		e.subTopicName = "pandoClientSubscriberTmp"
 	}
-	sub, err := legs.NewSubscriber(e.h, ds, e.lsys, e.subTopicName, nil)
+	sub, err := legs.NewSubscriber(e.h, ds, *e.lsys, e.subTopicName, nil)
 	if err != nil {
 		return nil, err
 	}

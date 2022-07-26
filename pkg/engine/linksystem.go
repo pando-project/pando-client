@@ -14,7 +14,7 @@ import (
 )
 
 // Creates the main engine linksystem.
-func (e *Engine) mkLinkSystem() ipld.LinkSystem {
+func (e *Engine) mkLinkSystem() *ipld.LinkSystem {
 	lsys := cidlink.DefaultLinkSystem()
 	lsys.StorageReadOpener = func(lctx ipld.LinkContext, lnk ipld.Link) (io.Reader, error) {
 
@@ -43,10 +43,10 @@ func (e *Engine) mkLinkSystem() ipld.LinkSystem {
 			}
 			// If this was an advertisement, then return it.
 			if isMetadata(n) {
-				logger.Debugw("Retrieved advertisement from datastore", "cid", c, "size", len(val))
+				logger.Debugw("Retrieved metadata from datastore", "cid", c, "size", len(val))
 				return bytes.NewBuffer(val), nil
 			}
-			logger.Debugw("Retrieved non-advertisement object from datastore", "cid", c, "size", len(val))
+			logger.Debugw("Retrieved non-metadata object from datastore", "cid", c, "size", len(val))
 		}
 
 		return bytes.NewBuffer(val), nil
@@ -58,14 +58,14 @@ func (e *Engine) mkLinkSystem() ipld.LinkSystem {
 			return e.ds.Put(lctx.Ctx, datastore.NewKey(c.String()), buf.Bytes())
 		}, nil
 	}
-	return lsys
+	return &lsys
 }
 
 // vanillaLinkSystem plainly loads and stores from engine datastore.
 //
 // This is used to plainly load and store links without the complex
 // logic of the main linksystem. This is mainly used to retrieve
-// stored advertisements through the link from the main blockstore.
+// stored metadatas through the link from the main blockstore.
 func (e *Engine) vanillaLinkSystem() ipld.LinkSystem {
 	lsys := cidlink.DefaultLinkSystem()
 	lsys.StorageReadOpener = func(lctx ipld.LinkContext, lnk ipld.Link) (io.Reader, error) {
@@ -96,8 +96,7 @@ func decodeIPLDNode(r io.Reader) (ipld.Node, error) {
 	return nb.Build(), nil
 }
 
-// isMetadata loosely checks if an IPLD node is an advertisement or an index.
-// This is done simply by checking if `Signature` filed is present.
+// isMetadata loosely checks if an IPLD node is a metadata
 func isMetadata(n ipld.Node) bool {
 	signature, _ := n.LookupByString("Signature")
 	provider, _ := n.LookupByString("Provider")
