@@ -12,6 +12,7 @@ const (
 
 // MITR is short for MaxIntervalToRepublish
 var MITR int
+var defaultMaxIntervalToRepublish = Duration(time.Duration(MITR) * time.Hour)
 
 type IngestCfg struct {
 	// todo: not use temporary
@@ -32,7 +33,7 @@ func NewIngestCfg() IngestCfg {
 		PersistAfterSend:       defaultPersistAfterSend,
 		PublisherKind:          DTSyncPublisherKind,
 		CheckInterval:          defaultCheckInterval,
-		MaxIntervalToRepublish: Duration(time.Duration(MITR) * time.Hour),
+		MaxIntervalToRepublish: defaultMaxIntervalToRepublish,
 	}
 }
 
