@@ -151,11 +151,14 @@ func (e *Engine) newPublisher() (legs.Publisher, error) {
 }
 
 func (e *Engine) newSubscriber() (*legs.Subscriber, error) {
+	subOptions := []legs.Option{
+		legs.Topic(e.subTopic),
+	}
 	ds := dsn.Wrap(e.ds, datastore.NewKey("/legs/dtsync/sub"))
 	if e.subTopicName == "" {
 		e.subTopicName = "pandoClientSubscriberTmp"
 	}
-	sub, err := legs.NewSubscriber(e.h, ds, *e.lsys, e.subTopicName, nil)
+	sub, err := legs.NewSubscriber(e.h, ds, *e.lsys, e.subTopicName, nil, subOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -356,6 +359,7 @@ func (e *Engine) Sync(ctx context.Context, c string, depth int, endCidStr string
 		syncRes = append(syncRes, rcid)
 	}
 
+	// if sel is nil, sync will raise error
 	var sel ipld.Node
 	if depth != 0 || endCid.Defined() {
 		var limiter selector.RecursionLimit

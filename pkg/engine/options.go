@@ -16,7 +16,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multiaddr"
 )
 
 const (
@@ -63,6 +62,7 @@ type (
 		pubTopicName       string
 		pubTopic           *pubsub.Topic
 		subTopicName       string
+		subTopic           *pubsub.Topic
 		pubExtraGossipData []byte
 	}
 )
@@ -99,6 +99,15 @@ func newOptions(o ...Option) (*options, error) {
 	// Defensively check that host's self private key is indeed set.
 	if opts.key == nil {
 		return nil, fmt.Errorf("cannot find private key in self peerstore; libp2p host is misconfigured")
+	}
+
+	if len(opts.provider.Addrs) == 0 {
+		opts.provider.Addrs = opts.h.Addrs()
+		logger.Infow("Retrieval address not configured; using host listen addresses instead.", "retrievalAddrs", opts.provider.Addrs)
+	}
+	if opts.provider.ID == "" {
+		opts.provider.ID = opts.h.ID()
+		logger.Infow("Retrieval ID not configured; using host ID instead.", "retrievalID", opts.provider.ID)
 	}
 
 	return opts, nil
@@ -146,6 +155,26 @@ func WithTopicName(t string) Option {
 	}
 }
 
+// WithTopic sets the pubsub topic on which new metadata are announced.
+// To use the default pubsub configuration with a specific topic name, use WithTopicName. If both
+// options are specified, WithTopic takes presence.
+//
+// Note that this option only takes effect if the PublisherKind is set to DataTransferPublisher.
+// See: WithPublisherKind.
+func WithTopic(t *pubsub.Topic) Option {
+	return func(o *options) error {
+		o.pubTopic = t
+		return nil
+	}
+}
+
+func WithSubTopic(t *pubsub.Topic) Option {
+	return func(o *options) error {
+		o.subTopic = t
+		return nil
+	}
+}
+
 // WithDataTransfer sets the instance of datatransfer.Manager to use.
 // If unspecified a new instance is created automatically.
 //
@@ -188,26 +217,6 @@ func WithLinkSystem(lsys *linking.LinkSystem) Option {
 func WithSubTopicName(tname string) Option {
 	return func(o *options) error {
 		o.subTopicName = tname
-		return nil
-	}
-}
-
-// WithRetrievalAddrs sets the addresses that specify where to get the content corresponding to an
-// indexing metadata.
-// If unspecified, the libp2p host listen addresses are used.
-// See: WithHost.
-func WithRetrievalAddrs(addr ...multiaddr.Multiaddr) Option {
-	return func(o *options) error {
-		o.provider.Addrs = addr
-		return nil
-	}
-}
-
-// WithProvider sets the peer and addresses for the provider to put in indexing metadatas.
-// This value overrides `WithRetrievalAddrs`
-func WithProvider(provider peer.AddrInfo) Option {
-	return func(o *options) error {
-		o.provider = provider
 		return nil
 	}
 }

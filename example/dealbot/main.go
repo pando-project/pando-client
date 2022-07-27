@@ -51,7 +51,7 @@ func getPeerIDFromPrivateKeyStr(privateKeyStr string) (peer.ID, crypto.PrivKey, 
 	3. keep connectness withPando
 	4. create Engine and Start
 	5. sync data you want(with Pando). In the example, we sync with dealbot provider from Pando.
-	(6.) deal with received data
+	(6.) deal with received data. (compute the success rate from received FinishedTask)
 **/
 func main() {
 	// 1. create libp2p host and store

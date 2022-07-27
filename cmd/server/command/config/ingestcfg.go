@@ -5,7 +5,7 @@ import "time"
 type PublisherKind string
 
 const (
-	defaultPersistAfterSend               = false
+	defaultPersistAfterSend               = true
 	DTSyncPublisherKind     PublisherKind = "dtsync"
 	defaultCheckInterval                  = Duration(time.Minute)
 )
