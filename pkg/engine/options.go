@@ -50,10 +50,13 @@ type (
 		// ID.
 		key crypto.PrivKey
 
-		provider       peer.AddrInfo
-		pandoAddrinfo  peer.AddrInfo
-		pandoAPIClient *resty.Client
-		checkInterval  time.Duration
+		provider               peer.AddrInfo
+		pandoAddrinfo          peer.AddrInfo
+		pandoAPIClient         *resty.Client
+		checkInterval          time.Duration
+		maxIntervalToRepublish time.Duration
+
+		PersistAfterSend bool
 
 		lsys               *linking.LinkSystem
 		pubKind            PublisherKind
@@ -253,6 +256,20 @@ func WithPandoAPIClient(url string, connectTimeout time.Duration) Option {
 func WithCheckInterval(duration config.Duration) Option {
 	return func(o *options) error {
 		o.checkInterval = time.Duration(duration)
+		return nil
+	}
+}
+
+func WithMaxIntervalToRepublish(duration config.Duration) Option {
+	return func(o *options) error {
+		o.maxIntervalToRepublish = time.Duration(duration)
+		return nil
+	}
+}
+
+func WithPersistAfterSend(persistAfterSend bool) Option {
+	return func(o *options) error {
+		o.PersistAfterSend = persistAfterSend
 		return nil
 	}
 }

@@ -6,7 +6,7 @@ import (
 )
 
 func InitCmd() *cobra.Command {
-	return &cobra.Command{
+	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize client config file.",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -42,4 +42,7 @@ func InitCmd() *cobra.Command {
 			return cfg.Save(configFile)
 		},
 	}
+	initCmd.PersistentFlags().IntVarP(&config.MITR, "MaxIntervalToRepublish", "i", 24,
+		"set MaxIntervalToRepublish")
+	return initCmd
 }

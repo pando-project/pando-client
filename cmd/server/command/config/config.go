@@ -3,10 +3,9 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"github.com/mitchellh/go-homedir"
 	"os"
 	"path/filepath"
-
-	"github.com/mitchellh/go-homedir"
 )
 
 // Config is used to load config files.
