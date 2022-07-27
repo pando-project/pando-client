@@ -56,6 +56,8 @@ type (
 		checkInterval          time.Duration
 		maxIntervalToRepublish time.Duration
 
+		PersistAfterSend bool
+
 		pubKind            PublisherKind
 		pubDT              datatransfer.Manager
 		pubHttpListenAddr  string
@@ -235,6 +237,13 @@ func WithCheckInterval(duration config.Duration) Option {
 func WithMaxIntervalToRepublish(duration config.Duration) Option {
 	return func(o *options) error {
 		o.maxIntervalToRepublish = time.Duration(duration)
+		return nil
+	}
+}
+
+func WithPersistAfterSend(persistAfterSend bool) Option {
+	return func(o *options) error {
+		o.PersistAfterSend = persistAfterSend
 		return nil
 	}
 }

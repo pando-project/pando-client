@@ -144,9 +144,11 @@ func (cr *checkRegistry) checkSyncStatus(c cid.Cid, status *syncStatus) error {
 	if inclusion.InPando {
 		cr.checkMutex.Lock()
 		delete(cr.checkMap, c.String())
-		err := cr.e.ds.Delete(context.Background(), datastore.NewKey(c.String()))
-		if err != nil {
-			return err
+		if !cr.e.options.PersistAfterSend {
+			err := cr.e.ds.Delete(context.Background(), datastore.NewKey(c.String()))
+			if err != nil {
+				return err
+			}
 		}
 		cr.checkMutex.Unlock()
 	} else {

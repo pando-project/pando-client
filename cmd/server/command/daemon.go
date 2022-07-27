@@ -110,6 +110,7 @@ func DaemonCmd() *cobra.Command {
 			}
 
 			eng, err := engine.New(
+				engine.WithPersistAfterSend(cfg.IngestCfg.PersistAfterSend),
 				engine.WithMaxIntervalToRepublish(cfg.IngestCfg.MaxIntervalToRepublish),
 				engine.WithCheckInterval(cfg.IngestCfg.CheckInterval),
 				engine.WithPandoAPIClient(cfg.PandoInfo.PandoAPIUrl, time.Second*10),
