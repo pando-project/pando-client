@@ -143,21 +143,10 @@ func TestEngine_PublishWithDataTransferPublisher(t *testing.T) {
 	pubHost, err := libp2p.New()
 	require.NoError(t, err)
 
-	pubG, err := pubsub.NewGossipSub(ctx, pubHost)
-	require.NoError(t, err)
-
-	pubT, err := pubG.Join(topic)
-	require.NoError(t, err)
-
-	pubTSub, err := pubG.Join("tmpforsub")
-	require.NoError(t, err)
-
 	subject, err := New(
 		WithHost(pubHost),
 		WithPublisherKind(DataTransferPublisher),
-		WithTopic(pubT),
 		WithTopicName(topic),
-		WithSubTopic(pubTSub),
 		WithExtraGossipData(extraGossipData),
 	)
 	require.NoError(t, err)
@@ -182,7 +171,7 @@ func TestEngine_PublishWithDataTransferPublisher(t *testing.T) {
 
 	//time.Sleep(time.Second * 3)
 	requireTrueEventually(t, func() bool {
-		pubPeers := pubG.ListPeers(topic)
+		pubPeers := subject.GossipPubSub.ListPeers(topic)
 		return len(pubPeers) == 1 && pubPeers[0] == subHost.ID()
 	}, time.Second, 5*time.Second, "timed out waiting for subscriber peer ID to appear in publisher's gossipsub peer list")
 

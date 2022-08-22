@@ -62,6 +62,7 @@ type (
 		pubKind            PublisherKind
 		pubDT              datatransfer.Manager
 		pubHttpListenAddr  string
+		GossipPubSub       *pubsub.PubSub
 		pubTopicName       string
 		pubTopic           *pubsub.Topic
 		subTopicName       string
@@ -74,8 +75,11 @@ func newOptions(o ...Option) (*options, error) {
 	opts := &options{
 		pubKind:           NoPublisher,
 		pubHttpListenAddr: "0.0.0.0:9022",
-		pubTopicName:      "/pando/v0.0.1",
-		checkInterval:     time.Minute,
+		// default pando topic, if Pando updates, the topic should update too
+		pubTopicName: "/pando/v0.0.1",
+		// default topic for consumer, in fact it is not used. But it should not conflict with publisher
+		subTopicName:  "pandoClientSubscriberTmp",
+		checkInterval: time.Minute,
 	}
 
 	for _, apply := range o {
@@ -147,33 +151,12 @@ func WithHttpPublisherListenAddr(addr string) Option {
 }
 
 // WithTopicName sets toe topic name on which pubsub announcements are published.
-// To override the default pubsub configuration, use WithTopic.
 //
 // Note that this option only takes effect if the PublisherKind is set to DataTransferPublisher.
 // See: WithPublisherKind.
 func WithTopicName(t string) Option {
 	return func(o *options) error {
 		o.pubTopicName = t
-		return nil
-	}
-}
-
-// WithTopic sets the pubsub topic on which new metadata are announced.
-// To use the default pubsub configuration with a specific topic name, use WithTopicName. If both
-// options are specified, WithTopic takes presence.
-//
-// Note that this option only takes effect if the PublisherKind is set to DataTransferPublisher.
-// See: WithPublisherKind.
-func WithTopic(t *pubsub.Topic) Option {
-	return func(o *options) error {
-		o.pubTopic = t
-		return nil
-	}
-}
-
-func WithSubTopic(t *pubsub.Topic) Option {
-	return func(o *options) error {
-		o.subTopic = t
 		return nil
 	}
 }

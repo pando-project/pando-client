@@ -20,6 +20,7 @@ import (
 	"github.com/ipld/go-ipld-prime/traversal/selector"
 	"github.com/kenlabs/pando/pkg/types/schema"
 	"github.com/libp2p/go-libp2p-core/peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"net/http"
 	sc "pandoClient/pkg/schema"
 	"sync"
@@ -100,6 +101,22 @@ func (e *Engine) initInfo(ctx context.Context) error {
 func (e *Engine) Start(ctx context.Context) error {
 	var err error
 
+	// create and get topics from unique PubSub, avoid creating multi pubsubs in subscriber and publisher
+	e.GossipPubSub, err = pubsub.NewGossipSub(ctx, e.h)
+	if err != nil {
+		panic(err)
+	}
+	// get publisher topic from pubsub by topic name
+	e.pubTopic, err = e.GossipPubSub.Join(e.pubTopicName)
+	if err != nil {
+		panic(err)
+	}
+	// get consumber topic from pubsub by topic name
+	e.subTopic, err = e.GossipPubSub.Join(e.subTopicName)
+	if err != nil {
+		panic(err)
+	}
+
 	e.publisher, err = e.newPublisher()
 	if err != nil {
 		logger.Errorw("Failed to instantiate legs publisher", "err", err, "kind", e.pubKind)
@@ -155,9 +172,7 @@ func (e *Engine) newSubscriber() (*legs.Subscriber, error) {
 		legs.Topic(e.subTopic),
 	}
 	ds := dsn.Wrap(e.ds, datastore.NewKey("/legs/dtsync/sub"))
-	if e.subTopicName == "" {
-		e.subTopicName = "pandoClientSubscriberTmp"
-	}
+
 	sub, err := legs.NewSubscriber(e.h, ds, *e.lsys, e.subTopicName, nil, subOptions...)
 	if err != nil {
 		return nil, err

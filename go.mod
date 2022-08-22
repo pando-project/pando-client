@@ -12,7 +12,6 @@ require (
 	github.com/libp2p/go-libp2p-core v0.16.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-multiaddr v0.5.0
-	github.com/smartystreets/goconvey v1.7.2
 	github.com/spf13/cobra v1.5.0
 )
 
@@ -33,11 +32,11 @@ require (
 	github.com/agiledragon/gomonkey/v2 v2.7.0
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-ipfs-blockstore v1.2.0
+	github.com/smartystreets/goconvey v1.6.4
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306
 )
 
 require (
-	bou.ke/monkey v1.0.2 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bep/debounce v1.2.0 // indirect
