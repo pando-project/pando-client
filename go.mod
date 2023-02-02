@@ -1,4 +1,4 @@
-module pando-client
+module github.com/pando-project/pando-client
 
 go 1.18
 

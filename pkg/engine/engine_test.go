@@ -21,8 +21,8 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/pando-project/pando-client/cmd/server/command/config"
 	. "github.com/smartystreets/goconvey/convey"
-	"pando-client/cmd/server/command/config"
 	"sort"
 
 	"github.com/multiformats/go-multiaddr"

@@ -7,7 +7,7 @@ import (
 	dssync "github.com/ipfs/go-datastore/sync"
 	"github.com/ipld/go-ipld-prime/linking"
 	"github.com/libp2p/go-libp2p"
-	"pando-client/cmd/server/command/config"
+	"github.com/pando-project/pando-client/cmd/server/command/config"
 	"time"
 
 	datatransfer "github.com/filecoin-project/go-data-transfer"

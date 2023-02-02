@@ -15,8 +15,8 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"pando-client/cmd/server/command/config"
-	"pando-client/pkg/engine"
+	"github.com/pando-project/pando-client/cmd/server/command/config"
+	"github.com/pando-project/pando-client/pkg/engine"
 	"time"
 )
 

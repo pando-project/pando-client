@@ -1,8 +1,8 @@
 package command
 
 import (
+	"github.com/pando-project/pando-client/cmd/server/command/config"
 	"github.com/spf13/cobra"
-	"pando-client/cmd/server/command/config"
 )
 
 func InitCmd() *cobra.Command {

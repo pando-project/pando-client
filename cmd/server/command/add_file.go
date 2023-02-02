@@ -3,8 +3,8 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	adminserver "github.com/pando-project/pando-client/pkg/server/admin/http"
 	"github.com/spf13/cobra"
-	adminserver "pando-client/pkg/server/admin/http"
 )
 
 var req = adminserver.ImportFileReq{}
