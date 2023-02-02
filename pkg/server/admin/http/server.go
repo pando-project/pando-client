@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"pandoClient/pkg/engine"
-	"pandoClient/pkg/util/log"
+	"pando-client/pkg/engine"
+	"pando-client/pkg/util/log"
 
 	"github.com/gorilla/mux"
 	"github.com/libp2p/go-libp2p-core/host"

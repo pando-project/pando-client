@@ -12,7 +12,7 @@ import (
 	"github.com/ipld/go-ipld-prime/multicodec"
 	"github.com/ipld/go-ipld-prime/node/basicnode"
 	"io"
-	"pandoClient/pkg/util/log"
+	"pando-client/pkg/util/log"
 	"time"
 )
 

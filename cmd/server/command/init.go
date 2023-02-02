@@ -2,7 +2,7 @@ package command
 
 import (
 	"github.com/spf13/cobra"
-	"pandoClient/cmd/server/command/config"
+	"pando-client/cmd/server/command/config"
 )
 
 func InitCmd() *cobra.Command {

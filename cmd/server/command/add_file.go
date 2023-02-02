@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
-	adminserver "pandoClient/pkg/server/admin/http"
+	adminserver "pando-client/pkg/server/admin/http"
 )
 
 var req = adminserver.ImportFileReq{}

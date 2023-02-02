@@ -22,13 +22,13 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"net/http"
-	"pandoClient/cmd/server/command/config"
-	sc "pandoClient/pkg/schema"
+	"pando-client/cmd/server/command/config"
+	sc "pando-client/pkg/schema"
 	"sync"
 	"time"
 
 	//"github.com/kenlabs/pando/pkg/types/schema"
-	"pandoClient/pkg/util/log"
+	"pando-client/pkg/util/log"
 )
 
 var (

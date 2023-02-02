@@ -16,10 +16,10 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/spf13/cobra"
 	"os"
-	"pandoClient/cmd/server/command/config"
-	"pandoClient/pkg/engine"
-	adminserver "pandoClient/pkg/server/admin/http"
-	"pandoClient/pkg/util/log"
+	"pando-client/cmd/server/command/config"
+	"pando-client/pkg/engine"
+	adminserver "pando-client/pkg/server/admin/http"
+	"pando-client/pkg/util/log"
 	"time"
 )
 

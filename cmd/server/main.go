@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"pandoClient/cmd/server/command"
+	"pando-client/cmd/server/command"
 )
 
 func main() {
