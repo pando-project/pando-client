@@ -10,7 +10,6 @@ import (
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	gsimpl "github.com/ipfs/go-graphsync/impl"
 	gsnet "github.com/ipfs/go-graphsync/network"
-	"github.com/ipfs/go-ipfs/core/bootstrap"
 	logging "github.com/ipfs/go-log/v2"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/libp2p/go-libp2p"
@@ -54,7 +53,7 @@ func DaemonCmd() *cobra.Command {
 			ctx, cancelp2p := context.WithCancel(cmd.Context())
 			defer cancelp2p()
 
-			peerID, privKey, err := cfg.Identity.Decode()
+			_, privKey, err := cfg.Identity.Decode()
 			if err != nil {
 				return err
 			}
@@ -115,6 +114,7 @@ func DaemonCmd() *cobra.Command {
 				engine.WithCheckInterval(cfg.IngestCfg.CheckInterval),
 				engine.WithPandoAPIClient(cfg.PandoInfo.PandoAPIUrl, time.Second*10),
 				engine.WithPandoAddrinfo(*pandoAddrInfo),
+				engine.WithBootstrap(cfg.Bootstrap),
 				engine.WithDatastore(ds),
 				engine.WithDataTransfer(dt),
 				engine.WithHost(h),
@@ -153,34 +153,13 @@ func DaemonCmd() *cobra.Command {
 				errChan <- adminServer.Start()
 			}()
 
-			// If there are bootstrap peers and bootstrapping is enabled, then try to
-			// connect to the minimum set of peers.
-			if cfg.Bootstrap.MinimumPeers != 0 {
-				addrs, err := cfg.Bootstrap.PeerAddrs()
-				if err != nil {
-					return fmt.Errorf("bad bootstrap peer: %s", err)
-				}
-
-				pandoAddrInfo, err := cfg.PandoInfo.AddrInfo()
-				if err != nil {
-					return fmt.Errorf("invalid pando addrinfo: %s", err)
-				}
-				logger.Infow(pandoAddrInfo.String())
-
-				addrs = append(addrs, *pandoAddrInfo)
-
-				bootCfg := bootstrap.BootstrapConfigWithPeers(addrs)
-				bootCfg.MinPeerThreshold = cfg.Bootstrap.MinimumPeers
-				// move to config after
-				bootCfg.Period = time.Second * 30
-				bootCfg.ConnectionTimeout = time.Second * 5
-
-				bootstrapper, err := bootstrap.Bootstrap(peerID, h, nil, bootCfg)
-				if err != nil {
-					return fmt.Errorf("bootstrap failed: %s", err)
-				}
-				defer bootstrapper.Close()
-			}
+			//// If there are bootstrap peers and bootstrapping is enabled, then try to
+			//// connect to the minimum set of peers.
+			//closer, err := config.StartBootStrap(h, &cfg.Bootstrap, pandoAddrInfo)
+			//if err != nil {
+			//	return fmt.Errorf("bootstrap failed: %s", err)
+			//}
+			//defer closer.Close()
 
 			var finalErr error
 			// Keep process running.

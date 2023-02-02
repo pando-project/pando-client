@@ -22,6 +22,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"net/http"
+	"pandoClient/cmd/server/command/config"
 	sc "pandoClient/pkg/schema"
 	"sync"
 	"time"
@@ -36,7 +37,7 @@ var (
 	dsPushedCidListKey = datastore.NewKey("sync/meta/list")
 )
 
-// Engine is an implementation of the core reference provider interface.
+// Engine is an implementation of the core reference client interface.
 type Engine struct {
 	*options
 	lsys         *ipld.LinkSystem
@@ -79,7 +80,23 @@ func New(o ...Option) (*Engine, error) {
 		e.lsys = e.mkLinkSystem()
 	}
 
+	e.bootstrap()
+
 	return e, nil
+}
+
+func (e *Engine) bootstrap() {
+	closer, err := config.StartBootStrap(e.h, e.options.bootstrap, e.options.pandoAddrinfo)
+	if err != nil {
+		logger.Errorf("falied to bootstrap: %v", err)
+	}
+	go func() {
+		<-e.closing
+		if closer != nil {
+			closer.Close()
+		}
+	}()
+
 }
 
 func (e *Engine) initInfo(ctx context.Context) error {
@@ -492,10 +509,9 @@ func (e *Engine) Shutdown() error {
 		}
 	}
 	close(e.closing)
-	go func() {
-		e.cr.close()
-		close(e.closeDone)
-	}()
+	e.cr.close()
+	close(e.closeDone)
+
 	<-e.closeDone
 
 	return errs

@@ -3,8 +3,12 @@ package config
 import (
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs/core/bootstrap"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
+	"io"
+	"time"
 )
 
 const defaultMinimumPeers = 1
@@ -88,4 +92,38 @@ func addrsToPeers(addrs []peer.AddrInfo) []string {
 		}
 	}
 	return peers
+}
+
+func StartBootStrap(h host.Host, cfg *Bootstrap, pinfo *peer.AddrInfo) (io.Closer, error) {
+	// If there are bootstrap peers and bootstrapping is enabled, then try to
+	// connect to the minimum set of peers.
+	if cfg == nil && pinfo == nil {
+		return nil, nil
+	}
+	if cfg == nil {
+		bt := NewBootstrap()
+		cfg = &bt
+	}
+	if cfg.MinimumPeers != 0 || pinfo != nil {
+		addrs, err := cfg.PeerAddrs()
+		if err != nil {
+			return nil, fmt.Errorf("bad bootstrap peer: %s", err)
+		}
+
+		addrs = append(addrs, *pinfo)
+
+		bootCfg := bootstrap.BootstrapConfigWithPeers(addrs)
+		bootCfg.MinPeerThreshold = cfg.MinimumPeers
+		// move to config after
+		bootCfg.Period = time.Second * 30
+		bootCfg.ConnectionTimeout = time.Second * 5
+
+		peerID := h.ID()
+		bootstrapper, err := bootstrap.Bootstrap(peerID, h, nil, bootCfg)
+		if err != nil {
+			return nil, fmt.Errorf("bootstrap failed: %s", err)
+		}
+		return bootstrapper, nil
+	}
+	return nil, nil
 }

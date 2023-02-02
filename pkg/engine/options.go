@@ -38,20 +38,21 @@ type (
 	// See: WithPublisherKind, NoPublisher, DataTransferPublisher, HttpPublisher.
 	PublisherKind string
 
-	// Option sets a configuration parameter for the provider engine.
+	// Option sets a configuration parameter for the client engine.
 	Option func(*options) error
 
 	options struct {
-		ds datastore.Batching
-		h  host.Host
+		ds        datastore.Batching
+		h         host.Host
+		bootstrap *config.Bootstrap
 		// key is always initialized from the host peerstore.
 		// Setting an explicit identity must not be exposed unless it is tightly coupled with the
 		// host identity. Otherwise, the signature of metadata will not match the libp2p host
 		// ID.
 		key crypto.PrivKey
 
-		provider               peer.AddrInfo
-		pandoAddrinfo          peer.AddrInfo
+		client                 peer.AddrInfo
+		pandoAddrinfo          *peer.AddrInfo
 		pandoAPIClient         *resty.Client
 		checkInterval          time.Duration
 		maxIntervalToRepublish time.Duration
@@ -108,13 +109,13 @@ func newOptions(o ...Option) (*options, error) {
 		return nil, fmt.Errorf("cannot find private key in self peerstore; libp2p host is misconfigured")
 	}
 
-	if len(opts.provider.Addrs) == 0 {
-		opts.provider.Addrs = opts.h.Addrs()
-		logger.Infow("Retrieval address not configured; using host listen addresses instead.", "retrievalAddrs", opts.provider.Addrs)
+	if len(opts.client.Addrs) == 0 {
+		opts.client.Addrs = opts.h.Addrs()
+		logger.Infow("Retrieval address not configured; using host listen addresses instead.", "retrievalAddrs", opts.client.Addrs)
 	}
-	if opts.provider.ID == "" {
-		opts.provider.ID = opts.h.ID()
-		logger.Infow("Retrieval ID not configured; using host ID instead.", "retrievalID", opts.provider.ID)
+	if opts.client.ID == "" {
+		opts.client.ID = opts.h.ID()
+		logger.Infow("Retrieval ID not configured; using host ID instead.", "retrievalID", opts.client.ID)
 	}
 
 	return opts, nil
@@ -122,7 +123,7 @@ func newOptions(o ...Option) (*options, error) {
 
 func (o *options) retrievalAddrsAsString() []string {
 	var ras []string
-	for _, ra := range o.provider.Addrs {
+	for _, ra := range o.client.Addrs {
 		ras = append(ras, ra.String())
 	}
 	return ras
@@ -173,7 +174,7 @@ func WithDataTransfer(dt datatransfer.Manager) Option {
 	}
 }
 
-// WithHost specifies the host to which the provider engine belongs.
+// WithHost specifies the host to which the client engine belongs.
 // If unspecified, a host is created automatically.
 // See: libp2p.New.
 func WithHost(h host.Host) Option {
@@ -223,7 +224,7 @@ func WithExtraGossipData(extraData []byte) Option {
 
 func WithPandoAddrinfo(addrinfo peer.AddrInfo) Option {
 	return func(o *options) error {
-		o.pandoAddrinfo = addrinfo
+		o.pandoAddrinfo = &addrinfo
 		return nil
 	}
 }
@@ -253,6 +254,13 @@ func WithMaxIntervalToRepublish(duration config.Duration) Option {
 func WithPersistAfterSend(persistAfterSend bool) Option {
 	return func(o *options) error {
 		o.PersistAfterSend = persistAfterSend
+		return nil
+	}
+}
+
+func WithBootstrap(bt config.Bootstrap) Option {
+	return func(o *options) error {
+		o.bootstrap = &bt
 		return nil
 	}
 }

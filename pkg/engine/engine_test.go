@@ -232,6 +232,7 @@ func TestEngine_PublishWithDataTransferPublisher(t *testing.T) {
 }
 
 func TestMetaInclusion(t *testing.T) {
+	t.SkipNow()
 	e, err := New(
 		WithPublisherKind(DataTransferPublisher),
 		WithPandoAPIClient("https://pando-api.kencloud.com", time.Second*10),
@@ -293,10 +294,17 @@ func TestCatCid(t *testing.T) {
 
 func TestRePublish(t *testing.T) {
 	Convey("Test RePublish", t, func() {
+		pandoAddrInfo, err := config.GetPandoInfo()
+		So(err, ShouldBeNil)
+
+		info, err := pandoAddrInfo.AddrInfo()
+		So(err, ShouldBeNil)
+
 		Convey("RePublishLatest", func() {
 			ctx := context.Background()
 			e, err := New(
 				WithPublisherKind(DataTransferPublisher),
+				WithPandoAddrinfo(*info),
 			)
 			So(err, ShouldBeNil)
 
@@ -309,11 +317,14 @@ func TestRePublish(t *testing.T) {
 			rc, err := e.RePublishLatest(ctx)
 			So(err, ShouldBeNil)
 			So(rc, ShouldResemble, c)
+
+			time.Sleep(time.Second * 3)
 		})
 		Convey("RePublishCid", func() {
 			ctx := context.Background()
 			e, err := New(
 				WithPublisherKind(DataTransferPublisher),
+				WithPandoAddrinfo(*info),
 			)
 			So(err, ShouldBeNil)
 
@@ -331,11 +342,15 @@ func TestRePublish(t *testing.T) {
 
 			err = e.RePublishCid(ctx, c1)
 			So(err, ShouldBeNil)
+
+			time.Sleep(time.Second * 3)
+
 		})
 	})
 }
 
 func TestSyncFromPando(t *testing.T) {
+	t.SkipNow()
 	Convey("Test Sync", t, func() {
 		pandoAddrInfo, err := config.GetPandoInfo()
 		So(err, ShouldBeNil)

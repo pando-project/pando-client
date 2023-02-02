@@ -17,7 +17,7 @@ func CatCommand() *cobra.Command {
 			}
 			res, err := Client.R().
 				SetHeader("Content-Type", "application/octet-stream").
-				Get("/admin/cat?cid=" + catCid)
+				Get("/admin/cat/" + catCid)
 			if err != nil {
 				return err
 			}

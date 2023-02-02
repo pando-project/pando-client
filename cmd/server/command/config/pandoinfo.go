@@ -24,8 +24,8 @@ import (
 //}
 
 const (
-	kenlbasInfoUrl = "https://pando-api.kencloud.com/pando/info"
-	pandoAPIUrl    = "https://pando-api.kencloud.com"
+	kenlbasInfoUrl = "http://localhost:9000/pando/info"
+	pandoAPIUrl    = "http://localhost:9000"
 )
 
 type httpRes struct {
